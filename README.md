@@ -3,6 +3,13 @@
 A verbose error wrapper in Go.
 
 ## Example
+```go
+code := codes.DeadlineExceeded
+err := errors.New(code.String())
+wrapper := Wrap(err, "wrapped error", codes.AlreadyExists)
+str := fmt.Sprint(Wrap(wrapper, "another wrapped error", codes.NotFound).JSON())
+fmt.Println(str
+```
 ```json
 {
     "code": "NotFound (5)",
