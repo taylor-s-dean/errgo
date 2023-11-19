@@ -8,7 +8,7 @@ code := codes.DeadlineExceeded
 err := errors.New(code.String())
 wrapper := Wrap(err, "wrapped error", codes.AlreadyExists)
 str := fmt.Sprint(Wrap(wrapper, "another wrapped error", codes.NotFound).JSON())
-fmt.Println(str
+fmt.Println(str)
 ```
 ```json
 {
