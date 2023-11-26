@@ -1,4 +1,5 @@
 [![Go Test](https://github.com/taylor-s-dean/errgo/actions/workflows/go.yml/badge.svg)](https://github.com/taylor-s-dean/errgo/actions/workflows/go.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/taylor-s-dean/errgo.svg)](https://pkg.go.dev/github.com/taylor-s-dean/errgo)
 # errgo
 A verbose error wrapper in Go.
 
