@@ -3,7 +3,7 @@ module github.com/taylor-s-dean/errgo
 go 1.21
 
 require (
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	google.golang.org/grpc v1.62.0
 )
 
