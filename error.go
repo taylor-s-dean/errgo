@@ -24,25 +24,22 @@ type Error struct {
 
 // MarshalJSON implements the json.Marshaler interface.
 func (e Error) MarshalJSON() ([]byte, error) {
-	var errMsg []byte
+	var errJSON json.RawMessage
 	var err error
-	switch e.Err.(type) {
-	case *Error:
-		errMsg, err = json.Marshal(e.Err)
-	default:
-		errMsg, err = json.Marshal(e.Err.Error())
+
+	if e.Err == nil {
+		errJSON = []byte("null")
+	} else if _, ok := e.Err.(*Error); ok {
+		errJSON, err = json.Marshal(e.Err)
+	} else {
+		errJSON, err = json.Marshal(e.Err.Error())
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	var errInterface interface{}
-	if err := json.Unmarshal(errMsg, &errInterface); err != nil {
-		return nil, err
-	}
-
 	return json.Marshal(map[string]interface{}{
-		"error":       errInterface,
+		"error":       errJSON,
 		"message":     e.Message,
 		"file":        e.File,
 		"function":    e.Function,
@@ -55,6 +52,11 @@ func (e Error) MarshalJSON() ([]byte, error) {
 // Error implements the error interface.
 func (e *Error) Error() string {
 	return fmt.Sprintf("%s (%d): %s", e.Code.String(), e.Code, e.Message)
+}
+
+// Unwrap returns the underlying error for use with errors.Is and errors.As.
+func (e *Error) Unwrap() error {
+	return e.Err
 }
 
 func getStackInfo(stackDepth int) (string, string, int) {
@@ -106,12 +108,16 @@ func ContainsError(left error, right error) bool {
 		return false
 	}
 
-	if left.Error() == right.Error() {
+	rightStr := right.Error()
+	if left.Error() == rightStr {
 		return true
 	}
 
 	for e := Unwrap(left); e != nil; e = Unwrap(e.Err) {
-		if e.Error() == right.Error() || e.Err.Error() == right.Error() {
+		if e.Error() == rightStr {
+			return true
+		}
+		if e.Err != nil && e.Err.Error() == rightStr {
 			return true
 		}
 	}
@@ -125,12 +131,16 @@ func ContainsCode(left error, right codes.Code) bool {
 		return false
 	}
 
-	if strings.Contains(left.Error(), right.String()) {
+	rightStr := right.String()
+	if strings.Contains(left.Error(), rightStr) {
 		return true
 	}
 
 	for e := Unwrap(left); e != nil; e = Unwrap(e.Err) {
-		if e.Code == right || strings.Contains(e.Err.Error(), right.String()) {
+		if e.Code == right {
+			return true
+		}
+		if e.Err != nil && strings.Contains(e.Err.Error(), rightStr) {
 			return true
 		}
 	}
@@ -163,6 +173,10 @@ func (e *Error) JSON() string {
 
 // JSON returns the error as a JSON string.
 func JSON(e error) string {
+	if e == nil {
+		return ""
+	}
+
 	err := Unwrap(e)
 	if err != nil {
 		return err.JSON()
@@ -175,6 +189,14 @@ func JSON(e error) string {
 func Wrap(err error, msg string, code codes.Code) *Error {
 	file, function, line := getStackInfo(1)
 
+	// Only capture stack trace if one doesn't already exist in the error chain
+	var stackTrace string
+	if e, ok := err.(*Error); ok && e.StackTrace != "" {
+		stackTrace = e.StackTrace
+	} else {
+		stackTrace = string(debug.Stack())
+	}
+
 	return &Error{
 		Err:        err,
 		Message:    msg,
@@ -182,6 +204,6 @@ func Wrap(err error, msg string, code codes.Code) *Error {
 		Function:   function,
 		Line:       line,
 		Code:       code,
-		StackTrace: string(debug.Stack()),
+		StackTrace: stackTrace,
 	}
 }
