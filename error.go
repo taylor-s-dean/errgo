@@ -175,6 +175,14 @@ func JSON(e error) string {
 func Wrap(err error, msg string, code codes.Code) *Error {
 	file, function, line := getStackInfo(1)
 
+	// Only capture stack trace if one doesn't already exist in the error chain
+	var stackTrace string
+	if e, ok := err.(*Error); ok && e.StackTrace != "" {
+		stackTrace = e.StackTrace
+	} else {
+		stackTrace = string(debug.Stack())
+	}
+
 	return &Error{
 		Err:        err,
 		Message:    msg,
@@ -182,6 +190,6 @@ func Wrap(err error, msg string, code codes.Code) *Error {
 		Function:   function,
 		Line:       line,
 		Code:       code,
-		StackTrace: string(debug.Stack()),
+		StackTrace: stackTrace,
 	}
 }
